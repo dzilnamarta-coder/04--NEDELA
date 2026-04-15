@@ -1,5 +1,6 @@
 import sys
 from storage import load_list, save_list
+from utils import calc_line_total, calc_grand_total, count_units
 
 def main():
     if len(sys.argv) < 2:
@@ -9,21 +10,29 @@ def main():
     command = sys.argv[1]
 
     if command == "add":
-        if len(sys.argv) < 4:
-            print("Lūdzu norādiet produktu un cenu! Piemērs: python3 shop.py add Maize 1.20")
+        if len(sys.argv) < 5:
+            print("Lūdzu norādiet produktu, daudzumu un cenu! Piemērs: python3 shop.py add Maize 3 1.20")
             return
             
         name = sys.argv[2]
+        
         try:
-            price = float(sys.argv[3])
+            qty = int(sys.argv[3])
+            price = float(sys.argv[4])
+            if qty <= 0 or price <= 0:
+                print("Kļūda: Daudzumam un cenai jābūt lielākai par 0!")
+                return
         except ValueError:
-            print("Kļūda: Cenai jābūt skaitlim!")
+            print("Kļūda: Daudzumam jābūt veselam skaitlim un cenai jābūt skaitlim!")
             return
         
         items = load_list()
-        items.append({"name": name, "price": price})
+        item = {"name": name, "qty": qty, "price": price}
+        items.append(item)
         save_list(items)
-        print(f"✓ Pievienots: {name} ({price:.2f} EUR)")
+        
+        total = calc_line_total(item)
+        print(f"✓ Pievienots: {name} × {qty} ({price:.2f} EUR/gab.) = {total:.2f} EUR")
 
     elif command == "list":
         items = load_list()
@@ -33,12 +42,15 @@ def main():
             
         print("Iepirkumu saraksts:")
         for i, item in enumerate(items, 1):
-            print(f"  {i}. {item['name']} — {item['price']:.2f} EUR")
+            total = calc_line_total(item)
+            print(f"  {i}. {item['name']} × {item['qty']} — {item['price']:.2f} EUR/gab. — {total:.2f} EUR")
 
     elif command == "total":
         items = load_list()
-        total = sum(item['price'] for item in items)
-        print(f"Kopā: {total:.2f} EUR ({len(items)} produkti)")
+        grand_total = calc_grand_total(items)
+        units = count_units(items)
+        products = len(items)
+        print(f"Kopā: {grand_total:.2f} EUR ({units} vienības, {products} produkti)")
 
     elif command == "clear":
         save_list([])
